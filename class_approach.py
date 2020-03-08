@@ -8,12 +8,22 @@ WIN_HEIGHT = 500
 WIN_WIDTH = 500
 PLAYER_RADIUS = 20
 UPDATE_DELAY = 100
-PIPE_GAP = PLAYER_RADIUS * 2.5
+PIPE_GAP = PLAYER_RADIUS * 3
 PIPE_WIDTH = 40
-INTER_PIPE_DISTANCE = 150
-PIPE_SPEED = 10
+INTER_PIPE_DISTANCE = 100
+PIPE_SPEED = 7
 PIPES_ON_SCREEN = 10
 GRAVITY = 3
+
+
+def collision(birb):
+    global PLAYER_RADIUS
+    # try clamp method
+    for pipe in Pipe.pipes:
+        if birb.x + PLAYER_RADIUS >= pipe.top_left_x and birb.y + PLAYER_RADIUS <= pipe.top_left_y or \
+                birb.x + PLAYER_RADIUS >= pipe.bottom_left_x and birb.y +PLAYER_RADIUS >= pipe.bottom_left_y:
+            return True
+    return False
 
 
 class Birb:
@@ -38,6 +48,9 @@ class Birb:
         if self.y <= 0:
             self.y = 0
 
+        if collision(self):
+            self.dead = True  # TODO: implement jump only if not dead
+
         self.draw(win)
 
     def draw(self, win):
@@ -55,7 +68,7 @@ class Pipe:
         self.top_left_y = self.top_right_y = top_left_y
         self.top_right_x = top_left_x + PIPE_WIDTH
         self.bottom_left_x = top_left_x
-        self.bottom_left_y = self.bottom_right_y = top_left_y + INTER_PIPE_DISTANCE
+        self.bottom_left_y = self.bottom_right_y = top_left_y + PIPE_GAP
         self.bottom_right_x = self.top_right_x
         self.off_screen = False
 
@@ -70,7 +83,6 @@ class Pipe:
         if self.top_right_x <= 0:
             print("deleted")
             self.off_screen = True
-            # Pipe.pipes.remove(self)
 
         Pipe.pipes = [i for i in Pipe.pipes if not i.off_screen]
 
@@ -136,6 +148,3 @@ while True:  # until game window is open. sort of like a game window driver
     birb1.update(win)
 
     pygame.display.update()
-
-# TODO:
-# fix INTER_PIPE_GAP and PIPE_GAP dependence
