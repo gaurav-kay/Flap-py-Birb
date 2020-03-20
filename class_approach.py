@@ -1,6 +1,8 @@
 import pygame
 from random import randint
 import tracemalloc
+import numpy as np
+from big_brain import Network
 
 tracemalloc.start()
 
@@ -8,12 +10,13 @@ WIN_HEIGHT = 500
 WIN_WIDTH = 500
 PLAYER_RADIUS = 20
 UPDATE_DELAY = 100
-PIPE_GAP = PLAYER_RADIUS * 7
+PIPE_GAP = PLAYER_RADIUS * 6
 PIPE_WIDTH = 40
 INTER_PIPE_DISTANCE = 150
 PIPE_SPEED = 7
 PIPES_ON_SCREEN = 10
 GRAVITY = 3
+POPULATION_SIZE = 30
 
 
 class Birb:
@@ -24,8 +27,10 @@ class Birb:
         self.y = 250
         self.time_falling = 0
         self.dead = False
-        self.score = 0
         self.pipes_crossed = set()
+        self.fitness = 0
+        self.generation = 0
+        self.brain = self.net = Network([2, 6, 1])
 
     def jump(self):
         self.y -= Birb.JUMP
@@ -61,11 +66,25 @@ class Birb:
     def update_score(self, win, font):
         for pipe in Pipe.pipes:
             if self.x >= pipe.top_right_x:
-                self.pipes_crossed.add(id(pipe))
+                self.pipes_crossed.add(pipe)
                 break
 
         text = font.render(f"Score: {len(self.pipes_crossed)}", True, (255, 255, 255))
         win.blit(text, (0, 0))
+
+    def get_inputs(self):  # see
+        nearest_pipe = Pipe.pipes[0]
+
+        x = self.x
+        y = self.y
+
+        distances = [[((x - nearest_pipe.top_left_x) ** 2 + (y - nearest_pipe.top_left_y) ** 2) ** 0.5],
+                     [((x - nearest_pipe.bottom_left_x) ** 2 + (y - nearest_pipe.bottom_left_y) ** 2) ** 0.5]]
+
+        distances = np.array(distances)
+        distances = distances.reshape((2, 1))
+
+        return distances
 
 
 class Pipe:
@@ -99,7 +118,8 @@ class Pipe:
 
     def draw(self, win):
         pygame.draw.rect(win, (0, 255, 0), (self.top_left_x, 0, PIPE_WIDTH, self.top_right_y))
-        pygame.draw.rect(win, (0, 255, 0), (self.bottom_left_x, self.bottom_left_y, PIPE_WIDTH, WIN_HEIGHT - self.bottom_right_y))
+        pygame.draw.rect(win, (0, 255, 0),
+                         (self.bottom_left_x, self.bottom_left_y, PIPE_WIDTH, WIN_HEIGHT - self.bottom_right_y))
 
     @staticmethod
     def add_pipe():
@@ -124,53 +144,76 @@ class Pipe:
     @staticmethod
     def collision(birb):
         # try clamp method
-        for pipe in Pipe.pipes:
-            if pipe.top_left_x <= birb.x <= pipe.top_right_x and birb.y <= pipe.top_left_y or \
-                    pipe.bottom_left_x <= birb.x <= pipe.bottom_right_x and birb.y >= pipe.bottom_left_y:
-                return True
+        # for pipe in Pipe.pipes:
+        pipe = Pipe.pipes[0]
+        if pipe.top_left_x <= birb.x <= pipe.top_right_x and birb.y <= pipe.top_left_y or \
+                pipe.bottom_left_x <= birb.x <= pipe.bottom_right_x and birb.y >= pipe.bottom_left_y:
+            return True
         return False
 
 
-def run():
+def handle_ai(birbs, win, font):
+    for birb in birbs:
+        flap_confidence = birb.brain.forward(birb.get_inputs())
+        if flap_confidence > 0.5:
+            birb.jump()
+
+    game_over = all([birb.dead for birb in birbs])
+
+    for pipe in Pipe.pipes:
+        pipe.update(win, game_over)
+
+    for birb in birbs:
+        birb.update(win, font)
+
+
+def run(run_as_human=True):
     pygame.init()
     pygame.font.init()
 
     win = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
     pygame.display.set_caption("Flap-py birb")
-    font = pygame.font.SysFont("Helvetica", 30)
-
-    birb1 = Birb()
+    font = pygame.font.SysFont("Helvetica", 40)
 
     Pipe.init_pipes()
 
+    birb1 = Birb() if run_as_human else None
+    birbs = [Birb() for _ in range(POPULATION_SIZE)] if not run_as_human else None
+
     while True:  # until game window is open. sort of like a game window driver
+        pygame.event.poll()  # :) (!)
+
         win.fill((0, 0, 0))
         pygame.time.delay(UPDATE_DELAY)
 
         current, peak = tracemalloc.get_traced_memory()
-        print(f"Current memory usage is {current / 10**6}MB; Peak was {peak / 10**6}MB")
+        print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB")
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                tracemalloc.stop()
-                exit(0)
+        if run_as_human:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    tracemalloc.stop()
+                    exit(0)
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    birb1.jump()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        birb1.jump()
+
+            game_over = birb1.dead  # update game_over if all birbs are dead
+
+            for pipe in Pipe.pipes:
+                pipe.update(win, game_over)
+
+            birb1.update(win, font)
+        else:
+            handle_ai(birbs, win, font)
 
         if len(Pipe.pipes) < PIPES_ON_SCREEN:
             Pipe.add_pipe()
 
-        game_over = birb1.dead  # update game_over if all birbs are dead
-
-        for pipe in Pipe.pipes:
-            pipe.update(win, game_over)
-
-        birb1.update(win, font)
         pygame.display.update()
 
 
 if __name__ == '__main__':
-    run()
+    run(run_as_human=False)

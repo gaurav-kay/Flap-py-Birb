@@ -1,20 +1,18 @@
-import torch
+import numpy as np
 
 
-class Network(torch.nn.Module):
+class Network:
 
-    input_neurons = 2
-    hidden_neurons = 6
-    output_neurons = 1
+    def __init__(self, layer_sizes):
+        weight_shapes = [(a, b) for a, b in zip(layer_sizes[1:], layer_sizes[:-1])]
+        self.weights = [np.random.standard_normal(s) for s in weight_shapes]
+        self.biases = [np.zeros((s, 1)) for s in layer_sizes[1:]]
 
-    def __init__(self):
-        super().__init__()
+    def forward(self, a):
+        for w, b in zip(self.weights, self.biases):
+            a = self.sigmoid(np.matmul(w, a) + b)
+        return a
 
-        self.fc1 = torch.nn.Linear(Network.input_neurons, Network.hidden_neurons)
-        self.fc2 = torch.nn.Linear(Network.hidden_neurons, Network.output_neurons)
-
-    def forward(self, x):
-        x = torch.nn.functional.sigmoid(self.fc1(x))
-        x = torch.nn.functional.sigmoid(self.fc2(x))
-
-        return x
+    @staticmethod
+    def sigmoid(x):
+        return 1 / (1 + np.exp(-x))
