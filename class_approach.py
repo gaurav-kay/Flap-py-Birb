@@ -12,15 +12,17 @@ PLAYER_RADIUS = 20
 UPDATE_DELAY = 100
 PIPE_GAP = PLAYER_RADIUS * 6
 PIPE_WIDTH = 40
-INTER_PIPE_DISTANCE = 150
-PIPE_SPEED = 7
+INTER_PIPE_DISTANCE = 200
+PIPE_SPEED = 15
 PIPES_ON_SCREEN = 10
-GRAVITY = 3
+GRAVITY = 5
 POPULATION_SIZE = 30
+JUMP = 45
 
 
 class Birb:
-    JUMP = 30
+    birbs = []
+    maxes = []
 
     def __init__(self):
         self.x = 50
@@ -33,7 +35,7 @@ class Birb:
         self.brain = self.net = Network([2, 6, 1])
 
     def jump(self):
-        self.y -= Birb.JUMP
+        self.y -= JUMP
         self.time_falling = 0
 
     def update(self, win, font):  # tick()
@@ -52,25 +54,36 @@ class Birb:
         if Pipe.collision(self):
             self.dead = True  # TODO: implement jump only if not dead
 
-        self.update_score(win, font)
+        self.update_score()
         self.draw(win, font)
 
     def draw(self, win, font):
         if self.dead:
-            text = font.render(f"Score: {len(self.pipes_crossed)}", True, (255, 255, 255))
-            win.blit(text, (0, 0))
+            # text = font.render(f"Score: {len(self.pipes_crossed)}", True, (255, 255, 255))
+            # win.blit(text, (0, 0))
             pygame.draw.ellipse(win, (255, 0, 0), (self.x, WIN_HEIGHT - PLAYER_RADIUS, PLAYER_RADIUS, PLAYER_RADIUS))
+            Birb.birbs.remove(self)
         else:
             pygame.draw.ellipse(win, (255, 255, 255), (self.x, self.y, PLAYER_RADIUS, PLAYER_RADIUS))
 
-    def update_score(self, win, font):
+    def update_score(self):
         for pipe in Pipe.pipes:
             if self.x >= pipe.top_right_x:
                 self.pipes_crossed.add(pipe)
                 break
 
-        text = font.render(f"Score: {len(self.pipes_crossed)}", True, (255, 255, 255))
-        win.blit(text, (0, 0))
+    @staticmethod
+    def draw_score(win, font):
+        max_score_birb = max(Birb.birbs, key=lambda x: len(x.pipes_crossed))
+        max_score = len(max_score_birb.pipes_crossed)
+
+        text = font.render(f"Score: {max_score}", True, (255, 255, 255))
+
+        if id(max_score_birb) not in Birb.maxes:
+            win.blit(text, (0, 0))
+            Birb.maxes = [id(max_score_birb)]
+        else:
+            win.blit(text, (0, 0))
 
     def get_inputs(self):  # see
         nearest_pipe = Pipe.pipes[0]
@@ -144,7 +157,6 @@ class Pipe:
     @staticmethod
     def collision(birb):
         # try clamp method
-        # for pipe in Pipe.pipes:
         pipe = Pipe.pipes[0]
         if pipe.top_left_x <= birb.x <= pipe.top_right_x and birb.y <= pipe.top_left_y or \
                 pipe.bottom_left_x <= birb.x <= pipe.bottom_right_x and birb.y >= pipe.bottom_left_y:
@@ -152,19 +164,21 @@ class Pipe:
         return False
 
 
-def handle_ai(birbs, win, font):
-    for birb in birbs:
+def handle_ai(win, font):
+    for birb in Birb.birbs:
         flap_confidence = birb.brain.forward(birb.get_inputs())
         if flap_confidence > 0.5:
             birb.jump()
 
-    game_over = all([birb.dead for birb in birbs])
+    game_over = all([birb.dead for birb in Birb.birbs])
 
     for pipe in Pipe.pipes:
         pipe.update(win, game_over)
 
-    for birb in birbs:
+    for birb in Birb.birbs:
         birb.update(win, font)
+
+    Birb.draw_score(win, font)
 
 
 def run(run_as_human=True):
@@ -178,7 +192,7 @@ def run(run_as_human=True):
     Pipe.init_pipes()
 
     birb1 = Birb() if run_as_human else None
-    birbs = [Birb() for _ in range(POPULATION_SIZE)] if not run_as_human else None
+    Birb.birbs = [Birb() for _ in range(POPULATION_SIZE)] if not run_as_human else None
 
     while True:  # until game window is open. sort of like a game window driver
         pygame.event.poll()  # :) (!)
@@ -187,7 +201,7 @@ def run(run_as_human=True):
         pygame.time.delay(UPDATE_DELAY)
 
         current, peak = tracemalloc.get_traced_memory()
-        print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB")
+        print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB", len([i for i in Birb.birbs if not i.dead]))
 
         if run_as_human:
             for event in pygame.event.get():
@@ -207,7 +221,7 @@ def run(run_as_human=True):
 
             birb1.update(win, font)
         else:
-            handle_ai(birbs, win, font)
+            handle_ai(win, font)
 
         if len(Pipe.pipes) < PIPES_ON_SCREEN:
             Pipe.add_pipe()
