@@ -7,7 +7,7 @@ from big_brain import Network
 tracemalloc.start()
 
 WIN_HEIGHT = 500
-WIN_WIDTH = 500
+WIN_WIDTH = 800
 PLAYER_RADIUS = 20
 UPDATE_DELAY = 100
 PIPE_GAP = PLAYER_RADIUS * 6
@@ -16,7 +16,7 @@ INTER_PIPE_DISTANCE = 200
 PIPE_SPEED = 15
 PIPES_ON_SCREEN = 10
 GRAVITY = 5
-POPULATION_SIZE = 30
+POPULATION_SIZE = 20
 JUMP = 45
 
 
@@ -26,7 +26,7 @@ class Birb:
 
     def __init__(self):
         self.x = 50
-        self.y = 250
+        self.y = WIN_HEIGHT // 2
         self.time_falling = 0
         self.dead = False
         self.pipes_crossed = set()
@@ -38,9 +38,9 @@ class Birb:
         self.y -= JUMP
         self.time_falling = 0
 
-    def update(self, win, font):  # tick()
+    def update(self, win):  # tick()
         if self.dead:
-            self.draw(win, font)
+            self.draw(win)
             return
 
         self.time_falling += 0.5
@@ -55,15 +55,10 @@ class Birb:
             self.dead = True  # TODO: implement jump only if not dead
 
         self.update_score()
-        self.draw(win, font)
+        self.draw(win)
 
-    def draw(self, win, font):
-        if self.dead:
-            # text = font.render(f"Score: {len(self.pipes_crossed)}", True, (255, 255, 255))
-            # win.blit(text, (0, 0))
-            pygame.draw.ellipse(win, (255, 0, 0), (self.x, WIN_HEIGHT - PLAYER_RADIUS, PLAYER_RADIUS, PLAYER_RADIUS))
-            Birb.birbs.remove(self)
-        else:
+    def draw(self, win):
+        if not self.dead:
             pygame.draw.ellipse(win, (255, 255, 255), (self.x, self.y, PLAYER_RADIUS, PLAYER_RADIUS))
 
     def update_score(self):
@@ -176,7 +171,7 @@ def handle_ai(win, font):
         pipe.update(win, game_over)
 
     for birb in Birb.birbs:
-        birb.update(win, font)
+        birb.update(win)
 
     Birb.draw_score(win, font)
 
@@ -191,8 +186,7 @@ def run(run_as_human=True):
 
     Pipe.init_pipes()
 
-    birb1 = Birb() if run_as_human else None
-    Birb.birbs = [Birb() for _ in range(POPULATION_SIZE)] if not run_as_human else None
+    Birb.birbs = [Birb() for _ in range(POPULATION_SIZE)] if not run_as_human else [Birb()]
 
     while True:  # until game window is open. sort of like a game window driver
         pygame.event.poll()  # :) (!)
@@ -201,7 +195,8 @@ def run(run_as_human=True):
         pygame.time.delay(UPDATE_DELAY)
 
         current, peak = tracemalloc.get_traced_memory()
-        print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB", len([i for i in Birb.birbs if not i.dead]))
+        print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB",
+              len([i for i in Birb.birbs if not i.dead]) if not run_as_human else None)
 
         if run_as_human:
             for event in pygame.event.get():
@@ -212,14 +207,15 @@ def run(run_as_human=True):
 
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
-                        birb1.jump()
+                        Birb.birbs[0].jump()
 
-            game_over = birb1.dead  # update game_over if all birbs are dead
+            game_over = Birb.birbs[0].dead  # update game_over if all birbs are dead
 
             for pipe in Pipe.pipes:
                 pipe.update(win, game_over)
 
-            birb1.update(win, font)
+            Birb.birbs[0].update(win)
+            Birb.draw_score(win, font)
         else:
             handle_ai(win, font)
 
