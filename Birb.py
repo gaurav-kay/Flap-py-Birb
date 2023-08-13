@@ -1,3 +1,5 @@
+from random import randint
+
 import numpy as np
 import pygame
 
@@ -19,6 +21,7 @@ class Birb:
         self.fitness = 0
         self.generation = 0
         self.brain = self.net = Network([2, 6, 1])
+        self.rgb = (randint(0, 255), randint(0, 255), randint(0, 255))
 
     def jump(self):
         self.y -= JUMP
@@ -45,7 +48,7 @@ class Birb:
 
     def draw(self, win):
         if not self.dead:
-            pygame.draw.ellipse(win, (255, 255, 255), (self.x, self.y, PLAYER_RADIUS, PLAYER_RADIUS))
+            pygame.draw.ellipse(win, self.rgb, (self.x, self.y, PLAYER_RADIUS, PLAYER_RADIUS))
 
     def update_score(self):
         for pipe in Pipe.pipes:
@@ -54,11 +57,12 @@ class Birb:
                 break
 
     @staticmethod
-    def draw_score(win, font):
+    def draw_score(win: pygame.display, font: pygame.font.SysFont):
         max_score_birb = max(Birb.birbs, key=lambda x: len(x.pipes_crossed))
         max_score = len(max_score_birb.pipes_crossed)
+        birbs_alive = len([_ for _ in Birb.birbs if not _.dead])
 
-        text = font.render(f"Score: {max_score}", True, (255, 255, 255))
+        text = font.render(f"Score: {max_score} & Alive: {birbs_alive}", True, (255, 255, 255))
 
         if id(max_score_birb) not in Birb.maxes:
             win.blit(text, (0, 0))

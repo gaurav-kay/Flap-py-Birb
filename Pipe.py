@@ -53,15 +53,12 @@ class Pipe:
         Pipe.pipes.append(Pipe(WIN_WIDTH, top_value))
 
         while len(Pipe.pipes) < PIPES_ON_SCREEN:
-            top_value = randint(20, WIN_HEIGHT - 20 - PIPE_GAP)
-            Pipe.pipes.append(Pipe(
-                Pipe.pipes[-1].top_right_x + PIPE_WIDTH + INTER_PIPE_DISTANCE,
-                top_value
-            ))
+            Pipe.add_pipe()
 
     @staticmethod
     def collision(birb):
-        # try clamp method
+        # TODO: try clamp method
+        # TODO: add birb radius to collision
         pipe = Pipe.pipes[0]
         if pipe.top_left_x <= birb.x <= pipe.top_right_x and birb.y <= pipe.top_left_y or \
                 pipe.bottom_left_x <= birb.x <= pipe.bottom_right_x and birb.y >= pipe.bottom_left_y:
