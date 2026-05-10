@@ -5,13 +5,12 @@ import pygame
 
 from Pipe import Pipe
 from big_brain import Network
-from CONSTANTS import WIN_HEIGHT, PLAYER_RADIUS, GRAVITY, JUMP, PIPE_SPEED
+from CONSTANTS import WIN_HEIGHT, PLAYER_RADIUS, GRAVITY, JUMP, PIPE_SPEED, WIN_WIDTH
 
 
 class Birb:
     birbs = []
-    maxes = []
-    c = 1
+    max_score = 0
 
     def __init__(self):
         self.x = 50
@@ -43,31 +42,32 @@ class Birb:
             return
 
         self.time_falling += 0.5
-        self.y += GRAVITY * self.time_falling
+        self.y += int(GRAVITY * self.time_falling)
 
         if self.y >= WIN_HEIGHT:
             self.dead = True
-        if self.y <= 0:
+        elif self.y <= 0:
             self.y = 0
+            # update fitness
+            self.fitness -= int(PIPE_SPEED * 0.1)
+        else:
+            # update fitness
+            self.fitness += PIPE_SPEED
 
         if Pipe.collision(self):
             self.dead = True  # TODO: implement jump only if not dead
-
-        # update fitness
-        self.fitness += PIPE_SPEED
-        # print(self.fitness, id(self))
 
         self.update_score()
         self.draw(win)
 
     def update_fitness(self):
         nearest_pipe = Pipe.pipes[0]
-        # print(id(self), self.fitness, nearest_pipe.top_left_x)
         self.fitness -= nearest_pipe.top_left_x
 
     def draw(self, win):
         if not self.dead:
-            pygame.draw.ellipse(win, self.rgb, (self.x, self.y, PLAYER_RADIUS, PLAYER_RADIUS))
+            # print(id(self), (self.x, self.y))
+            pygame.draw.ellipse(win, self.rgb, (int(self.x), int(self.y), PLAYER_RADIUS, PLAYER_RADIUS))
 
     def update_score(self):
         for pipe in Pipe.pipes:
@@ -76,18 +76,18 @@ class Birb:
                 break
 
     @staticmethod
-    def draw_score(win: pygame.display, font: pygame.font.SysFont):
+    def draw_score(win: pygame.display, font: pygame.font.SysFont, run_as_human: bool):
         max_score_birb = max(Birb.birbs, key=lambda x: len(x.pipes_crossed))
         Birb.max_score = len(max_score_birb.pipes_crossed)
         birbs_alive = len([_ for _ in Birb.birbs if not _.dead])
 
-        text = font.render(f"Score: {Birb.max_score} & Alive: {birbs_alive}", True, (255, 255, 255))
-
-        if id(max_score_birb) not in Birb.maxes:
-            win.blit(text, (0, 0))
-            Birb.maxes = [id(max_score_birb)]
+        if run_as_human:
+            text = font.render(f"Score: {Birb.max_score}", True, (255, 255, 255))
         else:
-            win.blit(text, (0, 0))
+            text = font.render(f"Score: {Birb.max_score} & Alive: {birbs_alive}", True, (255, 255, 255))
+
+        padding = 10
+        win.blit(text, (WIN_WIDTH - text.get_width() - padding, padding))
 
     def get_inputs(self) -> np.ndarray:  # see
         nearest_pipe = Pipe.pipes[0]

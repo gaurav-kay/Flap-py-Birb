@@ -1,3 +1,4 @@
+import copy
 import random
 from typing import List
 
@@ -11,7 +12,7 @@ def crossover(birb1: Birb, birb2: Birb) -> Birb:
     # if swapping both weights and biases, then maybe we end up with NNs that look like copies of each other.
     # If we swap only biases then maybe it is a "looser" influence.
     offspring = Birb()
-    offspring.generation = birb1.generation + 1
+    # offspring.generation = birb1.generation + 1
     offspring.rgb = (
         random.randint(birb1.rgb[0], birb2.rgb[0]) if birb2.rgb[0] >= birb1.rgb[0] else random.randint(birb2.rgb[0], birb1.rgb[0]),
         random.randint(birb1.rgb[1], birb2.rgb[1]) if birb2.rgb[1] >= birb1.rgb[1] else random.randint(birb2.rgb[1], birb1.rgb[1]),
@@ -61,25 +62,45 @@ def get_next_gen_birbs(birbs: List[Birb], max_score: int) -> List[Birb]:
     birbs = sorted(birbs, key=lambda x: x.fitness, reverse=True)  # desc order
 
     # crossover/breed
-    selection = birbs[:4]
-    next_birbs = selection  # continue top 4, aka Selection
+    percent_40 = int(0.4 * len(birbs))
+    percent_10 = int(0.1 * len(birbs))
+    percent_30 = int(0.3 * len(birbs))
+    remainder = len(birbs) - (percent_40 + percent_10 + percent_30)
+
+    selection = birbs[: percent_40]
+    next_birbs = []  # continue top 4, aka Selection
+    for birb in selection:
+        next_birb = Birb()
+        next_birb.brain = copy.deepcopy(birb.brain)
+        next_birb.rgb = birb.rgb
+        next_birbs.append(next_birb)
 
     # 1 crossover of top 2
-    next_birbs.append(crossover(birbs[0], birbs[1]))
+    for i in range(percent_10):
+        next_birbs.append(
+            crossover(
+                random.choice(selection[: len(selection) // 2]),
+                random.choice(selection[: len(selection) // 2])
+            )
+        )
 
     # 3 crossover of random 2
-    next_birbs.append(crossover(random.choice(selection), random.choice(selection)))
-    next_birbs.append(crossover(random.choice(selection), random.choice(selection)))
-    next_birbs.append(crossover(random.choice(selection), random.choice(selection)))
+    for i in range(percent_30):
+        next_birbs.append(crossover(random.choice(selection), random.choice(selection)))
+    # next_birbs.append(crossover(random.choice(selection), random.choice(selection)))
+    # next_birbs.append(crossover(random.choice(selection), random.choice(selection)))
+    # next_birbs.append(crossover(random.choice(selection), random.choice(selection)))
 
     # 2 direct of top 4
-    next_birbs.append(random.choice(selection))
-    next_birbs.append(random.choice(selection))
+    for i in range(remainder):
+        next_birbs.append(random.choice(selection))
+    # next_birbs.append(random.choice(selection))
+    # next_birbs.append(random.choice(selection))
 
     # mutate
     mutation_rate = INCREASED_GENETIC_MUTATION_RATE if max_score == 0 else DEFAULT_GENETIC_MUTATION_RATE
 
-    for birb in next_birbs:
+    for birb in next_birbs[percent_40:]:  # don't mutate top performers
         for idx, layer in enumerate(birb.brain.weights):
             mutated_weights = mutate(layer)
             mask = np.random.random(size=layer.shape) < mutation_rate
@@ -91,21 +112,3 @@ def get_next_gen_birbs(birbs: List[Birb], max_score: int) -> List[Birb]:
             birb.brain.biases[idx] = np.where(mask, mutated_biases, layer)
 
     return next_birbs
-
-# a = [Birb() for i in range(10)]
-# for i in a:
-#     print(vars(i.brain))
-#
-# b = get_next_gen_birbs(a)
-# print()
-#
-# # b = [Birb(), Birb()]
-# for i in b:
-#     print(vars(i.brain))
-
-# a = Birb()
-# b = Birb()
-# print(vars(a.brain), vars(b.brain), sep="\n")
-# x1 = crossover(a, b)
-#
-# print(vars(x1.brain), sep="\n")

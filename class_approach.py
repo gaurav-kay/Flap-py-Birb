@@ -6,23 +6,6 @@ from Pipe import Pipe
 from genetic import get_next_gen_birbs
 
 
-def handle_ai(win, font):
-    for birb in Birb.birbs:
-        flap_confidence = birb.brain.forward(birb.get_inputs())
-        if flap_confidence > 0.5:
-            birb.jump()
-
-    game_over = all([birb.dead for birb in Birb.birbs])
-
-    for pipe in Pipe.pipes:
-        pipe.update(win, game_over)
-
-    for birb in Birb.birbs:
-        birb.update(win)
-
-    Birb.draw_score(win, font)
-
-
 def run(run_as_human=True):
     game_over = False
     pygame.init()
@@ -46,6 +29,11 @@ def run(run_as_human=True):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit(0)
+            if not run_as_human:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:  # spawn new generation
+                        for birb in Birb.birbs:
+                            birb.dead = True
             if run_as_human:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_SPACE:
@@ -67,7 +55,7 @@ def run(run_as_human=True):
         for birb in Birb.birbs:
             birb.update(win)
 
-        Birb.draw_score(win, font)
+        Birb.draw_score(win, font, run_as_human)
 
         game_over = all([birb.dead for birb in Birb.birbs])
 
@@ -96,5 +84,5 @@ def run(run_as_human=True):
 
 
 if __name__ == '__main__':
-    # run(run_as_human=True)
-    run(run_as_human=False)
+    run(run_as_human=True)
+    # run(run_as_human=False)
