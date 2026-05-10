@@ -1,4 +1,5 @@
 from random import randint
+from typing import List
 
 import pygame
 
@@ -6,7 +7,7 @@ from CONSTANTS import WIN_HEIGHT, WIN_WIDTH, PIPE_GAP, PIPE_WIDTH, INTER_PIPE_DI
 
 
 class Pipe:
-    pipes = []
+    pipes: List['Pipe'] = []
 
     def __init__(self, top_left_x, top_left_y):
         self.top_left_x = top_left_x
@@ -49,6 +50,7 @@ class Pipe:
 
     @staticmethod
     def init_pipes():
+        Pipe.pipes = []
         top_value = randint(20, WIN_HEIGHT - 20 - PIPE_GAP)  # 20 is top buffer and 20 is bottom buffer
         Pipe.pipes.append(Pipe(WIN_WIDTH, top_value))
 

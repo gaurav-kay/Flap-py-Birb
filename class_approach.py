@@ -1,11 +1,9 @@
 import pygame
-import tracemalloc
 
 from Birb import Birb
 from CONSTANTS import WIN_HEIGHT, WIN_WIDTH, UPDATE_DELAY, PIPES_ON_SCREEN, POPULATION_SIZE
 from Pipe import Pipe
-
-tracemalloc.start()
+from genetic import get_next_gen_birbs
 
 
 def handle_ai(win, font):
@@ -42,18 +40,11 @@ def run(run_as_human=True):
     while True:  # until game window is open. sort of like a game window driver
         pygame.event.poll()  # :) (!) TODO: look at why it should be there
 
-        win.fill((0, 0, 0))
         pygame.time.delay(UPDATE_DELAY)
-
-        current, peak = tracemalloc.get_traced_memory()
-        if not game_over:
-            print(f"Current memory usage is {current / 10 ** 6}MB; Peak was {peak / 10 ** 6}MB", "Alive: ",
-                  len([i for i in Birb.birbs if not i.dead]) if not run_as_human else None)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                tracemalloc.stop()
                 exit(0)
             if run_as_human:
                 if event.type == pygame.KEYDOWN:
@@ -61,12 +52,14 @@ def run(run_as_human=True):
                         Birb.birbs[0].jump()
 
         if not run_as_human:
-            for birb in Birb.birbs:
-                flap_confidence = birb.brain.forward(birb.get_inputs())
-                if flap_confidence > 0.5:
-                    birb.jump()
+            if not game_over:
+                for birb in Birb.birbs:
+                    flap_confidence = birb.brain.forward(birb.get_inputs())
+                    if flap_confidence > 0.5:
+                        birb.jump()
 
-        game_over = all([birb.dead for birb in Birb.birbs])
+        # update and draw
+        win.fill(color=(0, 0, 0))
 
         for pipe in Pipe.pipes:
             pipe.update(win, game_over)
@@ -75,6 +68,25 @@ def run(run_as_human=True):
             birb.update(win)
 
         Birb.draw_score(win, font)
+
+        game_over = all([birb.dead for birb in Birb.birbs])
+
+        if game_over and run_as_human == False:
+            # wait for input and evolve and continue
+            # collect stats of prev population
+            # evolve
+                # select top
+                # crossover/breed
+                # mutate
+            pygame.time.delay(UPDATE_DELAY * 10)
+            # once game_over, update fitness final time
+            for birb in Birb.birbs:
+                birb.update_fitness()
+            Pipe.init_pipes()
+            Birb.birbs = get_next_gen_birbs(Birb.birbs, Birb.max_score)
+            for birb in Birb.birbs:
+                birb.reset_birb()  # reset to init positions and conditions
+            game_over = False
 
         if len(Pipe.pipes) < PIPES_ON_SCREEN:
             Pipe.add_pipe()

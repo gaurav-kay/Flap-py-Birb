@@ -5,12 +5,13 @@ import pygame
 
 from Pipe import Pipe
 from big_brain import Network
-from CONSTANTS import WIN_HEIGHT, PLAYER_RADIUS, GRAVITY, JUMP
+from CONSTANTS import WIN_HEIGHT, PLAYER_RADIUS, GRAVITY, JUMP, PIPE_SPEED
 
 
 class Birb:
     birbs = []
     maxes = []
+    c = 1
 
     def __init__(self):
         self.x = 50
@@ -20,8 +21,17 @@ class Birb:
         self.pipes_crossed = set()
         self.fitness = 0
         self.generation = 0
-        self.brain = self.net = Network([2, 6, 1])
+        self.brain = Network([2, 6, 6, 1])
         self.rgb = (randint(0, 255), randint(0, 255), randint(0, 255))
+
+    def reset_birb(self):  # staticmethod? reset all birbs at once?
+        self.x = 50
+        self.y = WIN_HEIGHT // 2
+        self.time_falling = 0
+        self.dead = False
+        self.pipes_crossed = set()
+        self.fitness = 0
+        self.generation += 1
 
     def jump(self):
         self.y -= JUMP
@@ -43,8 +53,17 @@ class Birb:
         if Pipe.collision(self):
             self.dead = True  # TODO: implement jump only if not dead
 
+        # update fitness
+        self.fitness += PIPE_SPEED
+        # print(self.fitness, id(self))
+
         self.update_score()
         self.draw(win)
+
+    def update_fitness(self):
+        nearest_pipe = Pipe.pipes[0]
+        # print(id(self), self.fitness, nearest_pipe.top_left_x)
+        self.fitness -= nearest_pipe.top_left_x
 
     def draw(self, win):
         if not self.dead:
@@ -59,10 +78,10 @@ class Birb:
     @staticmethod
     def draw_score(win: pygame.display, font: pygame.font.SysFont):
         max_score_birb = max(Birb.birbs, key=lambda x: len(x.pipes_crossed))
-        max_score = len(max_score_birb.pipes_crossed)
+        Birb.max_score = len(max_score_birb.pipes_crossed)
         birbs_alive = len([_ for _ in Birb.birbs if not _.dead])
 
-        text = font.render(f"Score: {max_score} & Alive: {birbs_alive}", True, (255, 255, 255))
+        text = font.render(f"Score: {Birb.max_score} & Alive: {birbs_alive}", True, (255, 255, 255))
 
         if id(max_score_birb) not in Birb.maxes:
             win.blit(text, (0, 0))
@@ -70,7 +89,7 @@ class Birb:
         else:
             win.blit(text, (0, 0))
 
-    def get_inputs(self):  # see
+    def get_inputs(self) -> np.ndarray:  # see
         nearest_pipe = Pipe.pipes[0]
 
         x = self.x
