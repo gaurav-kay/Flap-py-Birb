@@ -59,7 +59,7 @@ def run(run_as_human=True):
 
         game_over = all([birb.dead for birb in Birb.birbs])
 
-        if game_over and run_as_human == False:
+        if game_over and not run_as_human:
             # wait for input and evolve and continue
             # collect stats of prev population
             # evolve
@@ -74,6 +74,7 @@ def run(run_as_human=True):
             Birb.birbs = get_next_gen_birbs(Birb.birbs, Birb.max_score)
             for birb in Birb.birbs:
                 birb.reset_birb()  # reset to init positions and conditions
+            Birb.generation += 1
             game_over = False
 
         if len(Pipe.pipes) < PIPES_ON_SCREEN:
@@ -84,5 +85,5 @@ def run(run_as_human=True):
 
 
 if __name__ == '__main__':
-    run(run_as_human=True)
-    # run(run_as_human=False)
+    # run(run_as_human=True)
+    run(run_as_human=False)

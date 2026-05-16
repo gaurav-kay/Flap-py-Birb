@@ -5,14 +5,14 @@ from typing import List
 import numpy as np
 
 from Birb import Birb
-from CONSTANTS import GENETIC_CROSSOVER_SWAP_RATE, INCREASED_GENETIC_MUTATION_RATE, DEFAULT_GENETIC_MUTATION_RATE
+from CONSTANTS import GENETIC_CROSSOVER_SWAP_RATE, HIGH_GENETIC_MUTATION_RATE, MEDIUM_GENETIC_MUTATION_RATE, \
+    LOW_GENETIC_MUTATION_RATE
 
 
 def crossover(birb1: Birb, birb2: Birb) -> Birb:
     # if swapping both weights and biases, then maybe we end up with NNs that look like copies of each other.
     # If we swap only biases then maybe it is a "looser" influence.
     offspring = Birb()
-    # offspring.generation = birb1.generation + 1
     offspring.rgb = (
         random.randint(birb1.rgb[0], birb2.rgb[0]) if birb2.rgb[0] >= birb1.rgb[0] else random.randint(birb2.rgb[0], birb1.rgb[0]),
         random.randint(birb1.rgb[1], birb2.rgb[1]) if birb2.rgb[1] >= birb1.rgb[1] else random.randint(birb2.rgb[1], birb1.rgb[1]),
@@ -98,9 +98,20 @@ def get_next_gen_birbs(birbs: List[Birb], max_score: int) -> List[Birb]:
     # next_birbs.append(random.choice(selection))
 
     # mutate
-    mutation_rate = INCREASED_GENETIC_MUTATION_RATE if max_score == 0 else DEFAULT_GENETIC_MUTATION_RATE
+    # for birb in next_birbs[:percent_40]:
+    #     for idx, layer in enumerate(birb.brain.weights):
+    #         mutated_weights = mutate(layer)
+    #         mask = np.random.random(size=layer.shape) < LOW_GENETIC_MUTATION_RATE
+    #         birb.brain.weights[idx] = np.where(mask, mutated_weights, layer)
+    #
+    #     for idx, layer in enumerate(birb.brain.biases):
+    #         mutated_biases = mutate(layer)
+    #         mask = np.random.random(size=layer.shape) < LOW_GENETIC_MUTATION_RATE
+    #         birb.brain.biases[idx] = np.where(mask, mutated_biases, layer)
 
-    for birb in next_birbs[percent_40:]:  # don't mutate top performers
+    mutation_rate = HIGH_GENETIC_MUTATION_RATE if max_score == 0 else MEDIUM_GENETIC_MUTATION_RATE
+
+    for birb in next_birbs[percent_40:]:  # diff mutation rates
         for idx, layer in enumerate(birb.brain.weights):
             mutated_weights = mutate(layer)
             mask = np.random.random(size=layer.shape) < mutation_rate

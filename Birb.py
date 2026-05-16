@@ -11,6 +11,7 @@ from CONSTANTS import WIN_HEIGHT, PLAYER_RADIUS, GRAVITY, JUMP, PIPE_SPEED, WIN_
 class Birb:
     birbs = []
     max_score = 0
+    generation = 1
 
     def __init__(self):
         self.x = 50
@@ -19,18 +20,16 @@ class Birb:
         self.dead = False
         self.pipes_crossed = set()
         self.fitness = 0
-        self.generation = 0
-        self.brain = Network([2, 6, 6, 1])
+        self.brain = Network([2, 6, 6, 6, 1])
         self.rgb = (randint(0, 255), randint(0, 255), randint(0, 255))
 
-    def reset_birb(self):  # staticmethod? reset all birbs at once?
+    def reset_birb(self):  # staticmethod? reset all birbs at once?  # TODO: this is being weird
         self.x = 50
         self.y = WIN_HEIGHT // 2
         self.time_falling = 0
         self.dead = False
         self.pipes_crossed = set()
         self.fitness = 0
-        self.generation += 1
 
     def jump(self):
         self.y -= JUMP
@@ -49,7 +48,7 @@ class Birb:
         elif self.y <= 0:
             self.y = 0
             # update fitness
-            self.fitness -= int(PIPE_SPEED * 0.1)
+            self.fitness += int(PIPE_SPEED * 0.8)
         else:
             # update fitness
             self.fitness += PIPE_SPEED
@@ -84,7 +83,7 @@ class Birb:
         if run_as_human:
             text = font.render(f"Score: {Birb.max_score}", True, (255, 255, 255))
         else:
-            text = font.render(f"Score: {Birb.max_score} & Alive: {birbs_alive}", True, (255, 255, 255))
+            text = font.render(f"Generation: {Birb.generation} & Score: {Birb.max_score} & Alive: {birbs_alive}", True, (255, 255, 255))
 
         padding = 10
         win.blit(text, (WIN_WIDTH - text.get_width() - padding, padding))
