@@ -81,7 +81,7 @@ def run(run_as_human=True):
             Pipe.add_pipe()
 
         pygame.display.update()
-        clock.tick(60)  # TODO: set clock tick, but alter this after updating speeds etc and removing time delay
+        clock.tick(60)
 
 
 if __name__ == '__main__':
