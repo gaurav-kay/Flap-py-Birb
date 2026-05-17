@@ -10,7 +10,7 @@ def run(run_as_human=True):
     game_over = False
     pygame.init()
     pygame.font.init()
-    # clock = pygame.time.Clock()
+    clock = pygame.time.Clock()
 
     win = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
     pygame.display.set_caption("Flap-py birb")
@@ -21,9 +21,9 @@ def run(run_as_human=True):
     Birb.birbs = [Birb() for _ in range(POPULATION_SIZE)] if not run_as_human else [Birb()]
 
     while True:  # until game window is open. sort of like a game window driver
-        pygame.event.poll()  # :) (!) TODO: look at why it should be there
+        # pygame.event.poll()  # :) (!) TODO: look at why it should be there
 
-        pygame.time.delay(UPDATE_DELAY)
+        # pygame.time.delay(UPDATE_DELAY)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -44,7 +44,7 @@ def run(run_as_human=True):
                 for birb in Birb.birbs:
                     flap_confidence = birb.brain.forward(birb.get_inputs())
                     if flap_confidence > 0.5:
-                        birb.jump()
+                        birb.jump()  # TODO: add control to emulate human-speed of pressing jump
 
         # update and draw
         win.fill(color=(0, 0, 0))
@@ -81,7 +81,7 @@ def run(run_as_human=True):
             Pipe.add_pipe()
 
         pygame.display.update()
-        # clock.tick(60)  # TODO: set clock tick, but alter this after updating speeds etc and removing time delay
+        clock.tick(60)  # TODO: set clock tick, but alter this after updating speeds etc and removing time delay
 
 
 if __name__ == '__main__':

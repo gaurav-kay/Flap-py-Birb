@@ -20,7 +20,7 @@ class Birb:
         self.dead = False
         self.pipes_crossed = set()
         self.fitness = 0
-        self.brain = Network([2, 6, 6, 6, 1])
+        self.brain = Network([2, 6, 1])
         self.rgb = (randint(0, 255), randint(0, 255), randint(0, 255))
 
     def reset_birb(self):  # staticmethod? reset all birbs at once?  # TODO: this is being weird
