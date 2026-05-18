@@ -33,13 +33,14 @@ class PipeSystem:
     def __init__(self):
         self.pipes: List[Pipe] = []
         top_value = randint(PLAYER_RADIUS, WIN_HEIGHT - PLAYER_RADIUS - PIPE_GAP)  # 20 is top buffer and 20 is bottom buffer
-        self.pipes.append(Pipe(WIN_WIDTH, top_value))
+        first_pipe_distance = WIN_WIDTH
+        self.pipes.append(Pipe(first_pipe_distance, top_value))
 
         while len(self.pipes) < PIPES_ON_SCREEN:
             self.add_pipe()
 
     def add_pipe(self):
-        top_value = randint(PLAYER_RADIUS, WIN_HEIGHT - PLAYER_RADIUS - PIPE_GAP)
+        top_value = randint(PLAYER_RADIUS, WIN_HEIGHT - 2 * PLAYER_RADIUS - PIPE_GAP)
         self.pipes.append(Pipe(
             self.pipes[-1].top_right_x + INTER_PIPE_DISTANCE,
             top_value

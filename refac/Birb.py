@@ -1,9 +1,8 @@
-from collections import namedtuple
 from random import randint
 
 import pygame
 
-from CONSTANTS import WIN_HEIGHT, JUMP, PLAYER_RADIUS, GRAVITY, PIPE_SPEED
+from CONSTANTS import WIN_HEIGHT, JUMP, PLAYER_RADIUS, GRAVITY, PIPE_SPEED, PLAYER_OFFSET
 from big_brain import Network
 from refac.Pipes import Pipe
 
@@ -14,7 +13,7 @@ from refac.Pipes import Pipe
 
 class Birb:
     def __init__(self):
-        self.x = 50
+        self.x = PLAYER_OFFSET
         self.y = WIN_HEIGHT // 2
         self.time_falling = 0
         self.dead = False
@@ -32,14 +31,19 @@ class Birb:
             self.time_falling += 0.5
             self.y += int(GRAVITY * self.time_falling)
 
-        if self.y >= WIN_HEIGHT:
+        if self.y + PLAYER_RADIUS >= WIN_HEIGHT:
             self.dead = True
-        elif self.y <= 0:
-            self.y = 0
+            self.y = WIN_HEIGHT - PLAYER_RADIUS
+        elif self.y - PLAYER_RADIUS <= 0:
+            self.y = PLAYER_RADIUS
 
-        # pipe related position constraints
-        # if self.y + PLAYER_RADIUS <= closest_pipe.top_left_y:
-        #     self.y =
+        # pipe related position constraints - Y axis only, X axis is handled by dead check
+        if self.y - PLAYER_RADIUS <= closest_pipe.top_left_y and self.x + PLAYER_RADIUS >= closest_pipe.top_left_x \
+                and self.x - PLAYER_RADIUS <= closest_pipe.top_right_x:
+            self.y = closest_pipe.top_left_y + PLAYER_RADIUS
+        if self.y + PLAYER_RADIUS >= closest_pipe.bottom_left_y and self.x + PLAYER_RADIUS >= closest_pipe.bottom_left_x \
+                and self.x - PLAYER_RADIUS <= closest_pipe.bottom_right_x:
+            self.y = closest_pipe.bottom_left_y - PLAYER_RADIUS
 
     def update_fitness(self):
         if self.y <= 0:
@@ -63,31 +67,30 @@ class Birb:
         self.update_fitness()
 
     def check_collision(self, pipe: Pipe):
-        if pipe.top_left_x <= self.x <= pipe.top_right_x and self.y <= pipe.top_left_y or \
-                pipe.bottom_left_x <= self.x <= pipe.bottom_right_x and self.y >= pipe.bottom_left_y:
-            self.dead = True
-        else:
-            self.dead = False or self.dead
-
-        # PLAYER_RADIUS = 0
-        # Point = namedtuple("Point", ["x", "y"])
-        # center = Point(self.x + PLAYER_RADIUS, self.y + PLAYER_RADIUS)
-        # if pipe.top_left_x <= (center.x + PLAYER_RADIUS) <= pipe.top_right_x and (center.y + PLAYER_RADIUS) <= pipe.top_left_y or \
-        #         pipe.bottom_left_x <= (center.x + PLAYER_RADIUS) <= pipe.bottom_right_x and (center.y + PLAYER_RADIUS) >= pipe.bottom_left_y:
-        #     self.dead = True
-        # elif pipe.top_left_x <= (center.x - PLAYER_RADIUS) <= pipe.top_right_x and (center.y + PLAYER_RADIUS) <= pipe.top_left_y or \
-        #         pipe.bottom_left_x <= (center.x - PLAYER_RADIUS) <= pipe.bottom_right_x and (center.y + PLAYER_RADIUS) >= pipe.bottom_left_y:
-        #     self.dead = True
-        # elif pipe.top_left_x <= (center.x + PLAYER_RADIUS) <= pipe.top_right_x and (center.y - PLAYER_RADIUS) <= pipe.top_left_y or \
-        #         pipe.bottom_left_x <= (center.x + PLAYER_RADIUS) <= pipe.bottom_right_x and (center.y - PLAYER_RADIUS) >= pipe.bottom_left_y:
-        #     self.dead = True
-        # elif pipe.top_left_x <= (center.x - PLAYER_RADIUS) <= pipe.top_right_x and (center.y - PLAYER_RADIUS) <= pipe.top_left_y or \
-        #         pipe.bottom_left_x <= (center.x - PLAYER_RADIUS) <= pipe.bottom_right_x and (center.y - PLAYER_RADIUS) >= pipe.bottom_left_y:
+        # if pipe.top_left_x <= self.x <= pipe.top_right_x and self.y <= pipe.top_left_y or \
+        #         pipe.bottom_left_x <= self.x <= pipe.bottom_right_x and self.y >= pipe.bottom_left_y:
         #     self.dead = True
         # else:
         #     self.dead = False or self.dead
 
+        if pipe.top_left_x <= (self.x + PLAYER_RADIUS) <= pipe.top_right_x and (self.y + PLAYER_RADIUS) <= pipe.top_left_y or \
+                pipe.bottom_left_x <= (self.x + PLAYER_RADIUS) <= pipe.bottom_right_x and (self.y + PLAYER_RADIUS) >= pipe.bottom_left_y:
+            self.dead = True
+        elif pipe.top_left_x <= (self.x - PLAYER_RADIUS) <= pipe.top_right_x and (self.y + PLAYER_RADIUS) <= pipe.top_left_y or \
+                pipe.bottom_left_x <= (self.x - PLAYER_RADIUS) <= pipe.bottom_right_x and (self.y + PLAYER_RADIUS) >= pipe.bottom_left_y:
+            self.dead = True
+        elif pipe.top_left_x <= (self.x + PLAYER_RADIUS) <= pipe.top_right_x and (self.y - PLAYER_RADIUS) <= pipe.top_left_y or \
+                pipe.bottom_left_x <= (self.x + PLAYER_RADIUS) <= pipe.bottom_right_x and (self.y - PLAYER_RADIUS) >= pipe.bottom_left_y:
+            self.dead = True
+        elif pipe.top_left_x <= (self.x - PLAYER_RADIUS) <= pipe.top_right_x and (self.y - PLAYER_RADIUS) <= pipe.top_left_y or \
+                pipe.bottom_left_x <= (self.x - PLAYER_RADIUS) <= pipe.bottom_right_x and (self.y - PLAYER_RADIUS) >= pipe.bottom_left_y:
+            self.dead = True
+        else:
+            self.dead = False or self.dead
+
 
     def draw(self, win):
         # if not self.dead:
-        pygame.draw.ellipse(win, self.rgb, (int(self.x), int(self.y), PLAYER_RADIUS, PLAYER_RADIUS))
+        rect_top_left_x = self.x - PLAYER_RADIUS
+        rect_top_left_y = self.y - PLAYER_RADIUS
+        pygame.draw.ellipse(win, self.rgb, (int(rect_top_left_x), int(rect_top_left_y), 2 * PLAYER_RADIUS, 2 * PLAYER_RADIUS))
