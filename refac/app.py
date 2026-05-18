@@ -11,7 +11,6 @@ clock = pygame.time.Clock()
 win = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
 pygame.display.set_caption("Flap-py birb")
 font = pygame.font.SysFont("Helvetica", 40)
-game_over = False
 
 pipes = PipeSystem()
 birb = Birb()
@@ -23,10 +22,17 @@ def init_world():
     birb = Birb()
 
 
+def draw_score(win, score: int):
+    text = font.render(f"Score: {score}", True, (255, 255, 255))
+    padding = 10
+    win.blit(text, (WIN_WIDTH - text.get_width() - padding, padding))
+
+
 def run_as_human():
     # init world
     # reset score, init pipes, birds, text
     init_world()
+    game_over = False
 
     while True:
         jump = False
@@ -40,10 +46,16 @@ def run_as_human():
                 # pass
                 # init world , reset world
                 init_world()
+                game_over = False
+
+        if game_over:  # skip over update if game over
+            pygame.display.update()
+            clock.tick(60)
+            continue
 
         # update
         # update bird
-        birb.update(jump)
+        birb.update(jump, pipes.get_closest_pipe())
         # update pipes
         pipes.update()
         # update score
@@ -51,7 +63,10 @@ def run_as_human():
         # collision check (update after collision), collision is a gamesystem responsibility, but for convenience, placing in Birb class
         # if check_collision(birb, pipes.get_nearest_pipe()):
         #     birb.dead = True
-        birb.check_collision(pipes.get_nearest_pipe())
+        birb.check_collision(pipes.get_closest_pipe())
+
+        # update game state
+        game_over = birb.dead
 
         # draw
         win.fill(color=(0, 0, 0))
@@ -60,6 +75,7 @@ def run_as_human():
         # draw pipes
         pipes.draw(win)
         # draw score
+        draw_score(win, birb.score)
         pygame.display.update()
         clock.tick(60)
 

@@ -56,5 +56,5 @@ class PipeSystem:
         for pipe in self.pipes:
             pipe.draw(win)
 
-    def get_nearest_pipe(self):
+    def get_closest_pipe(self):
         return self.pipes[0]  # for input, be cautious
