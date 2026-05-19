@@ -57,7 +57,7 @@ def mutate(gene: np.ndarray) -> np.ndarray:
     return gene + gene * np.random.normal(size=gene.shape)
 
 
-def get_next_gen_birbs(birbs: List[Birb], max_score: int) -> List[Birb]:
+def get_next_gen_birbs(birbs: List[Birb]) -> List[Birb]:
     # select top
     birbs = sorted(birbs, key=lambda x: x.fitness, reverse=True)  # desc order
 
@@ -109,6 +109,7 @@ def get_next_gen_birbs(birbs: List[Birb], max_score: int) -> List[Birb]:
     #         mask = np.random.random(size=layer.shape) < LOW_GENETIC_MUTATION_RATE
     #         birb.brain.biases[idx] = np.where(mask, mutated_biases, layer)
 
+    max_score = max(birbs, key=lambda x: x.score).score
     mutation_rate = HIGH_GENETIC_MUTATION_RATE if max_score == 0 else MEDIUM_GENETIC_MUTATION_RATE
 
     for birb in next_birbs[percent_40:]:  # diff mutation rates
