@@ -12,14 +12,11 @@ win = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT))
 pygame.display.set_caption("Flap-py birb")
 font = pygame.font.SysFont("Helvetica", 40)
 
-pipes = PipeSystem()
-birb = Birb()
 
-
-def init_world():
-    global pipes, birb
-    pipes = PipeSystem()
-    birb = Birb()
+# def init_world():
+#     global pipes, birb
+#     pipes = PipeSystem()
+#     birb = Birb()
 
 
 def draw_score(win, score: int):
@@ -31,7 +28,9 @@ def draw_score(win, score: int):
 def run_as_human():
     # init world
     # reset score, init pipes, birds, text
-    init_world()
+    # init_world()
+    pipes = PipeSystem()
+    birb = Birb()
     game_over = False
 
     while True:
@@ -43,26 +42,19 @@ def run_as_human():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 jump = True
             if game_over and event.type == pygame.KEYDOWN and event.key == pygame.K_r:
-                # pass
-                # init world , reset world
-                init_world()
-                game_over = False
+                # init_world()
+                # game_over = False
+                run_as_human()
 
-        if game_over:  # skip over update if game over
-            pygame.display.update()
-            clock.tick(60)
-            continue
-
-        # update
-        # update bird
-        birb.update(jump, pipes.get_closest_pipe())
-        # update pipes
-        pipes.update()
-        # update score
+        if not game_over:  # skip over update if game over
+            # update
+            # update bird
+            birb.update(jump, pipes.get_closest_pipe())
+            # update pipes
+            pipes.update()
+            # update score
 
         # collision check (update after collision), collision is a gamesystem responsibility, but for convenience, placing in Birb class
-        # if check_collision(birb, pipes.get_nearest_pipe()):
-        #     birb.dead = True
         birb.check_collision(pipes.get_closest_pipe())
 
         # update game state
@@ -77,6 +69,7 @@ def run_as_human():
         # draw score
         draw_score(win, birb.score)
         pygame.display.update()
+
         clock.tick(60)
 
 
