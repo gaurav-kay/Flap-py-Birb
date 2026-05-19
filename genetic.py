@@ -4,7 +4,7 @@ from typing import List
 
 import numpy as np
 
-from refac.Birb import Birb
+from Birb import Birb
 from CONSTANTS import GENETIC_CROSSOVER_SWAP_RATE, HIGH_GENETIC_MUTATION_RATE, MEDIUM_GENETIC_MUTATION_RATE, \
     LOW_GENETIC_MUTATION_RATE
 

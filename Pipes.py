@@ -32,7 +32,7 @@ class Pipe:
 class PipeSystem:
     def __init__(self):
         self.pipes: List[Pipe] = []
-        top_value = randint(PLAYER_RADIUS, WIN_HEIGHT - PLAYER_RADIUS - PIPE_GAP)  # 20 is top buffer and 20 is bottom buffer
+        top_value = randint(PLAYER_RADIUS, WIN_HEIGHT - PLAYER_RADIUS - PIPE_GAP)  # PLAYER_RADIUS is top and bottom buffer
         first_pipe_distance = WIN_WIDTH
         self.pipes.append(Pipe(first_pipe_distance, top_value))
 
@@ -58,4 +58,4 @@ class PipeSystem:
             pipe.draw(win)
 
     def get_closest_pipe(self):
-        return self.pipes[0]  # for input, be cautious
+        return self.pipes[0]  # TODO: for input, be cautious

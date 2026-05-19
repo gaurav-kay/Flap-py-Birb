@@ -3,101 +3,117 @@ from random import randint
 import numpy as np
 import pygame
 
-from Pipe import Pipe
+from CONSTANTS import WIN_HEIGHT, JUMP, PLAYER_RADIUS, GRAVITY, PIPE_SPEED, PLAYER_OFFSET
 from big_brain import Network
-from CONSTANTS import WIN_HEIGHT, PLAYER_RADIUS, GRAVITY, JUMP, PIPE_SPEED, WIN_WIDTH
+from Pipes import Pipe
 
 
 class Birb:
-    birbs = []
-    max_score = 0
-    generation = 1
-
     def __init__(self):
-        self.x = 50
+        self.x = PLAYER_OFFSET
         self.y = WIN_HEIGHT // 2
         self.time_falling = 0
         self.dead = False
-        self.pipes_crossed = set()
+        self.prev_pipe_crossed = None
+        self.score = 0
         self.fitness = 0
         self.brain = Network([2, 6, 1])
         self.rgb = (randint(0, 255), randint(0, 255), randint(0, 255))
 
-    def reset_birb(self):  # staticmethod? reset all birbs at once?  # TODO: this is being weird
-        self.x = 50
-        self.y = WIN_HEIGHT // 2
-        self.time_falling = 0
-        self.dead = False
-        self.pipes_crossed = set()
-        self.fitness = 0
-
-    def jump(self):
-        self.y -= JUMP
-        self.time_falling = 0
-
-    def update(self, win):  # tick()
-        if self.dead:
-            self.draw(win)
-            return
-
-        self.time_falling += 0.5
-        self.y += int(GRAVITY * self.time_falling)
-
-        if self.y >= WIN_HEIGHT:
-            self.dead = True
-        elif self.y <= 0:
-            self.y = 0
-            # update fitness
-            self.fitness += int(PIPE_SPEED * 0.8)
+    def update_position(self, jump: bool, closest_pipe: Pipe):
+        if jump:
+            self.time_falling = 0
+            self.y -= JUMP
         else:
-            # update fitness
-            self.fitness += PIPE_SPEED
+            self.time_falling += 0.5
+            self.y += int(GRAVITY * self.time_falling)
 
-        if Pipe.collision(self):
-            self.dead = True  # TODO: implement jump only if not dead
+        if self.y + PLAYER_RADIUS >= WIN_HEIGHT:
+            self.dead = True
+            self.y = WIN_HEIGHT - PLAYER_RADIUS
+        elif self.y - PLAYER_RADIUS <= 0:
+            self.y = PLAYER_RADIUS
 
-        self.update_score()
-        self.draw(win)
+        # pipe related position constraints - Y axis only, X axis is handled by dead check
+        if self.y - PLAYER_RADIUS <= closest_pipe.top_left_y and self.x + PLAYER_RADIUS >= closest_pipe.top_left_x \
+                and self.x - PLAYER_RADIUS <= closest_pipe.top_right_x:
+            self.y = closest_pipe.top_left_y + PLAYER_RADIUS
+        if self.y + PLAYER_RADIUS >= closest_pipe.bottom_left_y and self.x + PLAYER_RADIUS >= closest_pipe.bottom_left_x \
+                and self.x - PLAYER_RADIUS <= closest_pipe.bottom_right_x:
+            self.y = closest_pipe.bottom_left_y - PLAYER_RADIUS
 
     def update_fitness(self):
-        nearest_pipe = Pipe.pipes[0]
-        self.fitness -= nearest_pipe.top_left_x
+        if self.y <= 0:
+            self.fitness += int(PIPE_SPEED * 0.8)
+        elif self.y < WIN_HEIGHT:
+            self.fitness += PIPE_SPEED
+
+    def update_fitness_after_game_over(self, closest_pipe: Pipe):
+        self.fitness -= closest_pipe.top_left_x
+
+    def update_score(self, closest_pipe: Pipe):
+        if self.x > closest_pipe.top_right_x:
+            if self.prev_pipe_crossed is not closest_pipe:
+                self.score += 1
+                self.fitness += PIPE_SPEED * 0.5
+                self.prev_pipe_crossed = closest_pipe
+
+    def update(self, jump: bool, closest_pipe: Pipe):
+        if self.dead:
+            self.x -= PIPE_SPEED
+            return
+
+        self.update_position(jump, closest_pipe)
+        self.update_score(closest_pipe)
+        self.update_fitness()
+
+    def check_collision(self, pipe: Pipe):
+        if pipe.top_left_x <= (self.x + PLAYER_RADIUS) <= pipe.top_right_x and (self.y + PLAYER_RADIUS) <= pipe.top_left_y or \
+                pipe.bottom_left_x <= (self.x + PLAYER_RADIUS) <= pipe.bottom_right_x and (self.y + PLAYER_RADIUS) >= pipe.bottom_left_y:
+            self.dead = True
+        elif pipe.top_left_x <= (self.x - PLAYER_RADIUS) <= pipe.top_right_x and (self.y + PLAYER_RADIUS) <= pipe.top_left_y or \
+                pipe.bottom_left_x <= (self.x - PLAYER_RADIUS) <= pipe.bottom_right_x and (self.y + PLAYER_RADIUS) >= pipe.bottom_left_y:
+            self.dead = True
+        elif pipe.top_left_x <= (self.x + PLAYER_RADIUS) <= pipe.top_right_x and (self.y - PLAYER_RADIUS) <= pipe.top_left_y or \
+                pipe.bottom_left_x <= (self.x + PLAYER_RADIUS) <= pipe.bottom_right_x and (self.y - PLAYER_RADIUS) >= pipe.bottom_left_y:
+            self.dead = True
+        elif pipe.top_left_x <= (self.x - PLAYER_RADIUS) <= pipe.top_right_x and (self.y - PLAYER_RADIUS) <= pipe.top_left_y or \
+                pipe.bottom_left_x <= (self.x - PLAYER_RADIUS) <= pipe.bottom_right_x and (self.y - PLAYER_RADIUS) >= pipe.bottom_left_y:
+            self.dead = True
+        else:
+            self.dead = False or self.dead
 
     def draw(self, win):
-        if not self.dead:
-            # print(id(self), (self.x, self.y))
-            pygame.draw.ellipse(win, self.rgb, (int(self.x), int(self.y), PLAYER_RADIUS, PLAYER_RADIUS))
+        if self.x + PLAYER_RADIUS > 0:  # if on screen
+            rect_top_left_x = self.x - PLAYER_RADIUS
+            rect_top_left_y = self.y - PLAYER_RADIUS
+            pygame.draw.ellipse(win, self.rgb, (int(rect_top_left_x), int(rect_top_left_y), 2 * PLAYER_RADIUS, 2 * PLAYER_RADIUS))
 
-    def update_score(self):
-        for pipe in Pipe.pipes:
-            if self.x >= pipe.top_right_x:
-                self.pipes_crossed.add(pipe)
-                break
-
-    @staticmethod
-    def draw_score(win: pygame.display, font: pygame.font.SysFont, run_as_human: bool):
-        max_score_birb = max(Birb.birbs, key=lambda x: len(x.pipes_crossed))
-        Birb.max_score = len(max_score_birb.pipes_crossed)
-        birbs_alive = len([_ for _ in Birb.birbs if not _.dead])
-
-        if run_as_human:
-            text = font.render(f"Score: {Birb.max_score}", True, (255, 255, 255))
+    def handle_ai(self, closest_pipe) -> bool:
+        inputs = self.get_inputs(closest_pipe)
+        flap_confidence = self.brain.forward(inputs)
+        if flap_confidence > 0.5:  # TODO: add control to emulate human-speed of pressing jump
+            return True
         else:
-            text = font.render(f"Generation: {Birb.generation} & Score: {Birb.max_score} & Alive: {birbs_alive}", True, (255, 255, 255))
+            return False
 
-        padding = 10
-        win.blit(text, (WIN_WIDTH - text.get_width() - padding, padding))
-
-    def get_inputs(self) -> np.ndarray:  # see
-        nearest_pipe = Pipe.pipes[0]
-
+    def get_inputs(self, closest_pipe: Pipe):
         x = self.x
         y = self.y
 
-        distances = [[((x - nearest_pipe.top_left_x) ** 2 + (y - nearest_pipe.top_left_y) ** 2) ** 0.5],
-                     [((x - nearest_pipe.bottom_left_x) ** 2 + (y - nearest_pipe.bottom_left_y) ** 2) ** 0.5]]
+        distances = [[((x - closest_pipe.top_left_x) ** 2 + (y - closest_pipe.top_left_y) ** 2) ** 0.5],
+                     [((x - closest_pipe.bottom_left_x) ** 2 + (y - closest_pipe.bottom_left_y) ** 2) ** 0.5]]
 
         distances = np.array(distances)
         distances = distances.reshape((2, 1))
 
         return distances
+
+    def reset(self):
+        self.x = PLAYER_OFFSET
+        self.y = WIN_HEIGHT // 2
+        self.time_falling = 0
+        self.dead = False
+        self.prev_pipe_crossed = None
+        self.score = 0
+        self.fitness = 0

@@ -1,9 +1,9 @@
 import pygame
 
 from genetic import get_next_gen_birbs
-from refac.Birb import Birb
-from refac.Pipes import PipeSystem
-from CONSTANTS import WIN_WIDTH, WIN_HEIGHT, POPULATION_SIZE, UPDATE_DELAY
+from Birb import Birb
+from Pipes import PipeSystem
+from CONSTANTS import WIN_WIDTH, WIN_HEIGHT, POPULATION_SIZE, RESET_DELAY
 
 pygame.init()
 pygame.font.init()
@@ -83,7 +83,7 @@ def run_as_ai():
 
         if game_over:
             pygame.display.update()
-            pygame.time.delay(UPDATE_DELAY * 10)
+            pygame.time.delay(RESET_DELAY)  # TODO: BUG: long delays freeze the game
             for birb in birbs:
                 birb.update_fitness_after_game_over(pipes.get_closest_pipe())
             pipes = PipeSystem()  # TODO: consider option of keeping same pipe system with same seed?
@@ -123,6 +123,7 @@ def run_as_ai():
         birbs_alive = len(list(filter(lambda x: not x.dead, birbs)))
         draw_score(score, generation, birbs_alive)
         pygame.display.update()
+
         clock.tick(60)
 
 if __name__ == '__main__':
